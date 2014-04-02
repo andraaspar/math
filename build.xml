@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="compile">
+	
+	<!--
+	Environment variables required:
+		TSC_PATH
+			Path to TSC compiler.
+			ex. %APPDATA%\npm\tsc.cmd
+	-->
+	
+	<property environment="env"/>
+	
+	<target name="clean">
+		<delete>
+			<fileset dir="build">
+				<include name="script/pir-math-test*.js"/>
+				<include name="style/style*.css"/>
+			</fileset>
+		</delete>
+	</target>
+	
+	<target name="compile-js">
+		<exec executable="${env.TSC_PATH}" failonerror="true">
+			<arg value="--out"/>
+			<arg value="build/script/pir-math-test-1.0.js"/>
+			<arg value="src/pir/math/test/Main.ts"/>
+		</exec>
+	</target>
+	
+	<target name="compile-less">
+		<java jar="rhino/js.jar" fork="true" errorproperty="n.less-compiler-error" outputproperty="n.less-compiler-out">
+			<arg value="less-compiler/less-rhino-1.5.1.js"/>
+			<arg value="src/style.less"/>
+		</java>
+
+		<fail message="${n.less-compiler-error}">
+			<condition>
+				<not>
+					<equals arg1="${n.less-compiler-error}" arg2=""/>
+				</not>
+			</condition>
+		</fail>
+
+		<fail message="${n.less-compiler-out}">
+			<condition>
+				<matches string="${n.less-compiler-out}" pattern="^Error" multiline="true"/>
+			</condition>
+		</fail>
+
+		<echo message="${n.less-compiler-out}" file="build/style/style-1.0.css"/>
+	</target>
+	
+	<target name="compile" depends="clean,compile-js,compile-less">
+		
+	</target>
+</project>
