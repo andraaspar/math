@@ -1,7 +1,7 @@
 module pir.math {
 	export interface IAddResult {
 		result: string;
-		carryOver: number;
+		carryOver: string;
 	}
 	
 	export class Float {
@@ -177,7 +177,7 @@ module pir.math {
 
 		addPart(a: string, b: string): string {
 			var result = '';
-			var carryOver = 0;
+			var carryOver = '';
 			for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
 				var addResult = this.addDigits(a.charAt(i), b.charAt(i), carryOver);
 				result = addResult.result + result;
@@ -189,12 +189,12 @@ module pir.math {
 			return result;
 		}
 		
-		addDigits(a: string, b: string, carryOver: number): IAddResult {
-			var result = parseInt(a) + parseInt(b) + carryOver;
+		addDigits(a: string, b: string, carryOver: string): IAddResult {
+			var result = parseInt(a) + parseInt(b) + parseInt(carryOver || '0');
 			var resultStr = result + '';
 			return {
 				result: resultStr.charAt(resultStr.length - 1),
-				carryOver: parseInt(resultStr.slice(0, -1) || '0')
+				carryOver: resultStr.slice(0, -1)
 			};
 		}
 

@@ -148,7 +148,7 @@ var pir;
 
             Float.prototype.addPart = function (a, b) {
                 var result = '';
-                var carryOver = 0;
+                var carryOver = '';
                 for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
                     var addResult = this.addDigits(a.charAt(i), b.charAt(i), carryOver);
                     result = addResult.result + result;
@@ -161,11 +161,11 @@ var pir;
             };
 
             Float.prototype.addDigits = function (a, b, carryOver) {
-                var result = parseInt(a) + parseInt(b) + carryOver;
+                var result = parseInt(a) + parseInt(b) + parseInt(carryOver || '0');
                 var resultStr = result + '';
                 return {
                     result: resultStr.charAt(resultStr.length - 1),
-                    carryOver: parseInt(resultStr.slice(0, -1) || '0')
+                    carryOver: resultStr.slice(0, -1)
                 };
             };
 
@@ -253,7 +253,7 @@ var pir;
 
                     console.assert(new pir.math.Float('55.55').add('16.5').toString() === '72.05');
                     console.assert(new pir.math.Float('-99.98').add('-0.03').toString() === '-100.01');
-                    console.assert(new pir.math.Float('9999999999999999999999999999999999999.9999999999999999999999999999999999998').add('0.0000000000000000000000000000000000003').toString() === '10000000000000000000000000000000000000.0000000000000000000000000000000000001');
+                    console.assert(new pir.math.Float('999999999999999999999999999999999999').add('999999999999999999999999999999999999').toString() === '1999999999999999999999999999999999998');
                 };
                 return Main;
             })();
