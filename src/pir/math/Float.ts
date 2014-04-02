@@ -1,4 +1,9 @@
 module pir.math {
+	export interface IAddResult {
+		result: string;
+		carryOver: number;
+	}
+	
 	export class Float {
 
 		private isNegative: boolean;
@@ -75,9 +80,9 @@ module pir.math {
 			return this.compareWith(other) > 0;
 		}
 
-		isGreaterThan(other: Float);
-		isGreaterThan(other: string);
-		isGreaterThan(other) {
+		isMoreThan(other: Float);
+		isMoreThan(other: string);
+		isMoreThan(other) {
 			return this.compareWith(other) < 0;
 		}
 
@@ -135,6 +140,62 @@ module pir.math {
 
 		private compareDigits(a: string, b: string) {
 			return parseInt(b) - parseInt(a);
+		}
+
+		add(other: Float): Float;
+		add(other: string): Float;
+		add(other) {
+			if (typeof other === 'string') {
+				other = new Float(other);
+			}
+			
+			var fractionalPartLength = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
+
+			var fractionalResult = this.addPart(
+				this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength),
+				this.rightPadWithZeros(other.getFractionalPart(), fractionalPartLength)
+			);
+			
+			var fractionalCarryOver = fractionalResult.substring(0, fractionalResult.length - fractionalPartLength);
+			fractionalResult = fractionalResult.substring(fractionalResult.length - fractionalPartLength);
+			
+			var integerPartLength = Math.max(this.getIntegerPartLength(), other.getIntegerPartLength());
+			var integerResult = this.addPart(
+				this.leftPadWithZeros(this.getIntegerPart(), integerPartLength),
+				this.leftPadWithZeros(other.getIntegerPart(), integerPartLength)
+			);
+			if (fractionalCarryOver) {
+				integerPartLength = Math.max(integerResult.length, fractionalCarryOver.length);
+				integerResult = this.addPart(
+					this.leftPadWithZeros(integerResult, integerPartLength),
+					this.leftPadWithZeros(fractionalCarryOver, integerPartLength)
+				);
+			}
+			
+			return new Float((this.getIsNegative() ? '-' : '') + integerResult + '.' + fractionalResult);
+		}
+
+		addPart(a: string, b: string): string {
+			var result = '';
+			var carryOver = 0;
+			for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
+				var addResult = this.addDigits(a.charAt(i), b.charAt(i), carryOver);
+				result = addResult.result + result;
+				carryOver = addResult.carryOver;
+			}
+			if (carryOver) {
+				result = carryOver + result;
+			}
+			return result;
+		}
+		
+		addDigits(a: string, b: string, carryOver: number): IAddResult {
+			var result = parseInt(a) + parseInt(b) + carryOver;
+			var resultStr = result + '';
+			return {
+				result: resultStr.charAt(resultStr.length - 1),
+				carryOver: parseInt(resultStr.slice(0, -1) || '0')
+			};
 		}
 
 		getIsPositive() {

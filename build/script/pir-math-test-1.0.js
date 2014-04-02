@@ -70,7 +70,7 @@ var pir;
                 return this.compareWith(other) > 0;
             };
 
-            Float.prototype.isGreaterThan = function (other) {
+            Float.prototype.isMoreThan = function (other) {
                 return this.compareWith(other) < 0;
             };
 
@@ -122,6 +122,51 @@ var pir;
 
             Float.prototype.compareDigits = function (a, b) {
                 return parseInt(b) - parseInt(a);
+            };
+
+            Float.prototype.add = function (other) {
+                if (typeof other === 'string') {
+                    other = new Float(other);
+                }
+
+                var fractionalPartLength = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
+
+                var fractionalResult = this.addPart(this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength), this.rightPadWithZeros(other.getFractionalPart(), fractionalPartLength));
+
+                var fractionalCarryOver = fractionalResult.substring(0, fractionalResult.length - fractionalPartLength);
+                fractionalResult = fractionalResult.substring(fractionalResult.length - fractionalPartLength);
+
+                var integerPartLength = Math.max(this.getIntegerPartLength(), other.getIntegerPartLength());
+                var integerResult = this.addPart(this.leftPadWithZeros(this.getIntegerPart(), integerPartLength), this.leftPadWithZeros(other.getIntegerPart(), integerPartLength));
+                if (fractionalCarryOver) {
+                    integerPartLength = Math.max(integerResult.length, fractionalCarryOver.length);
+                    integerResult = this.addPart(this.leftPadWithZeros(integerResult, integerPartLength), this.leftPadWithZeros(fractionalCarryOver, integerPartLength));
+                }
+
+                return new Float((this.getIsNegative() ? '-' : '') + integerResult + '.' + fractionalResult);
+            };
+
+            Float.prototype.addPart = function (a, b) {
+                var result = '';
+                var carryOver = 0;
+                for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
+                    var addResult = this.addDigits(a.charAt(i), b.charAt(i), carryOver);
+                    result = addResult.result + result;
+                    carryOver = addResult.carryOver;
+                }
+                if (carryOver) {
+                    result = carryOver + result;
+                }
+                return result;
+            };
+
+            Float.prototype.addDigits = function (a, b, carryOver) {
+                var result = parseInt(a) + parseInt(b) + carryOver;
+                var resultStr = result + '';
+                return {
+                    result: resultStr.charAt(resultStr.length - 1),
+                    carryOver: parseInt(resultStr.slice(0, -1) || '0')
+                };
             };
 
             Float.prototype.getIsPositive = function () {
@@ -190,11 +235,25 @@ var pir;
 
                     var c = new pir.math.Float('9999999999999999999999999999999999999.00000000000000000009');
                     var d = new pir.math.Float('9999999999999999999999999999999999999.0000000000000000009');
-                    console.assert(!c.isGreaterThan(d));
-                    console.assert(c.isLessThan(d));
-                    console.assert(!c.equals(d));
+                    console.assert(c.isMoreThan(d) === false);
+                    console.assert(c.isLessThan(d) === true);
+                    console.assert(c.equals(d) === false);
 
-                    console.assert(!(new pir.math.Float('3.4').isLessThan('-5.5')));
+                    console.assert(new pir.math.Float('5.5').isLessThan('-3.4') === false);
+                    console.assert(new pir.math.Float('-5.5').isLessThan('-3.4') === true);
+                    console.assert(new pir.math.Float('5.5').isLessThan('3.4') === false);
+
+                    console.assert(new pir.math.Float('-3.4').isMoreThan('-5.5') === true);
+                    console.assert(new pir.math.Float('3.4').isMoreThan('-5.5') === true);
+                    console.assert(new pir.math.Float('3.4').isMoreThan('5.5') === false);
+
+                    console.assert(new pir.math.Float('3.4').equals('5.5') === false);
+                    console.assert(new pir.math.Float('5.5').equals('-5.5') === false);
+                    console.assert(new pir.math.Float('5.5').equals('5.5') === true);
+
+                    console.assert(new pir.math.Float('55.55').add('16.5').toString() === '72.05');
+                    console.assert(new pir.math.Float('-99.98').add('-0.03').toString() === '-100.01');
+                    console.assert(new pir.math.Float('9999999999999999999999999999999999999.9999999999999999999999999999999999998').add('0.0000000000000000000000000000000000003').toString() === '10000000000000000000000000000000000000.0000000000000000000000000000000000001');
                 };
                 return Main;
             })();
