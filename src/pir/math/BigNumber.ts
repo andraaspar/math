@@ -4,7 +4,7 @@ module pir.math {
 		carryOver: string;
 	}
 
-	export class Float {
+	export class BigNumber {
 
 		private isNegative: boolean;
 		private isPositive: boolean;
@@ -28,78 +28,78 @@ module pir.math {
 			this.fractionalPart = this.stripTailingZeros(split[1] || '');
 		}
 
-		private stripLeadingZeros(src: string) {
+		private stripLeadingZeros(src: string): string {
 			for (var i = 0, n = src.length; i < n; i++) {
 				if (src.charAt(i) !== '0') break;
 			}
 			return src.substring(i);
 		}
 
-		private stripTailingZeros(src: string) {
+		private stripTailingZeros(src: string): string {
 			for (var i = src.length - 1; i >= 0; i--) {
 				if (src.charAt(i) !== '0') break;
 			}
 			return src.substring(0, i + 1);
 		}
 
-		private leftPadWithZeros(src: string, length: number) {
+		private leftPadWithZeros(src: string, length: number): string {
 			while (src.length < length) src = '0' + src;
 			return src;
 		}
 
-		private rightPadWithZeros(src: string, length: number) {
+		private rightPadWithZeros(src: string, length: number): string {
 			while (src.length < length) src = src + '0';
 			return src;
 		}
 
-		getIntegerPart() {
+		getIntegerPart(): string {
 			return this.integerPart;
 		}
 
-		getFractionalPart() {
+		getFractionalPart(): string {
 			return this.fractionalPart;
 		}
 
-		getIntegerPartLength() {
+		getIntegerPartLength(): number {
 			if (this.integerPartLength == null) {
 				this.integerPartLength = this.getIntegerPart().length;
 			}
 			return this.integerPartLength;
 		}
 
-		getFractionalPartLength() {
+		getFractionalPartLength(): number {
 			if (this.fractionalPartLength == null) {
 				this.fractionalPartLength = this.getFractionalPart().length;
 			}
 			return this.fractionalPartLength;
 		}
 
-		isLessThan(other: Float): boolean;
+		isLessThan(other: BigNumber): boolean;
 		isLessThan(other: string): boolean;
 		isLessThan(other) {
 			return this.compareWith(other) < 0;
 		}
 
-		isMoreThan(other: Float): boolean;
+		isMoreThan(other: BigNumber): boolean;
 		isMoreThan(other: string): boolean;
 		isMoreThan(other) {
 			return this.compareWith(other) > 0;
 		}
 
 
-		equals(other: Float): boolean;
+		equals(other: BigNumber): boolean;
 		equals(other: string): boolean;
 		equals(other) {
 			return this.compareWith(other) == 0;
 		}
 
-		compareWith(other: Float): number;
+		compareWith(other: BigNumber): number;
 		compareWith(other: string): number;
 		compareWith(other) {
 			if (typeof other == 'string') {
-				var otherFloat = new Float(other);
+				var otherFloat = new BigNumber(other);
 			} else {
-				var otherFloat = <Float>other;
+				var otherFloat = <BigNumber>other;
 			}
 
 			if (!this.getIsNegative() && otherFloat.getIsNegative()) {
@@ -114,21 +114,21 @@ module pir.math {
 			return result;
 		}
 
-		getAbsolute(): Float {
-			return new Float(this.toAbsoluteString());
+		getAbsolute(): BigNumber {
+			return new BigNumber(this.toAbsoluteString());
 		}
 
-		getInverted(): Float {
-			return new Float(this.toInvertedString());
+		getInverted(): BigNumber {
+			return new BigNumber(this.toInvertedString());
 		}
 
-		add(other: Float): Float;
-		add(other: string): Float;
+		add(other: BigNumber): BigNumber;
+		add(other: string): BigNumber;
 		add(other) {
 			if (typeof other === 'string') {
-				var otherFloat = new Float(other);
+				var otherFloat = new BigNumber(other);
 			} else {
-				var otherFloat = <Float>other;
+				var otherFloat = <BigNumber>other;
 			}
 
 			var fractionalPartLength = Math.max(this.getFractionalPartLength(), otherFloat.getFractionalPartLength());
@@ -147,7 +147,7 @@ module pir.math {
 			if (fractionalPartLength) {
 				result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
 			}
-			return new Float((this.getIsNegative() ? '-' : '') + result);
+			return new BigNumber((this.getIsNegative() ? '-' : '') + result);
 		}
 
 		addPart(a: string, b: string): string {
@@ -173,47 +173,47 @@ module pir.math {
 			};
 		}
 
-		getIsPositive() {
+		getIsPositive(): boolean {
 			if (this.isPositive == null) {
 				this.isPositive = !this.getIsMarkedNegative() && !this.getIsZero();
 			}
 			return this.isPositive;
 		}
 
-		getIsNegative() {
+		getIsNegative(): boolean {
 			if (this.isNegative == null) {
 				this.isNegative = this.getIsMarkedNegative() && !this.getIsZero();
 			}
 			return this.isNegative;
 		}
 
-		getIsZero() {
+		getIsZero(): boolean {
 			return this.getFractionalPartLength() == 0 && this.getIntegerPartLength() == 0;
 		}
 
-		getIsMarkedNegative() {
+		getIsMarkedNegative(): boolean {
 			return this.isMarkedNegative;
 		}
 
-		toAbsoluteString() {
+		toAbsoluteString(): string {
 			var fractionalPart = this.getFractionalPart();
 			if (fractionalPart) fractionalPart = '.' + fractionalPart;
 			return (this.getIntegerPart() || '0') + fractionalPart;
 		}
 
-		toInvertedString() {
+		toInvertedString(): string {
 			return (this.getIsNegative() || this.getIsZero() ? '' : '-') + this.toAbsoluteString();
 		}
 
-		toString() {
+		toString(): string {
 			return (this.getIsNegative() ? '-' : '') + this.toAbsoluteString();
 		}
 
-		toNumber() {
+		toNumber(): number {
 			return Number(this.toString());
 		}
 
-		valueOf() {
+		valueOf(): string {
 			return this.toString();
 		}
 	}

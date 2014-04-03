@@ -1,8 +1,8 @@
 var pir;
 (function (pir) {
     (function (math) {
-        var Float = (function () {
-            function Float(asString) {
+        var BigNumber = (function () {
+            function BigNumber(asString) {
                 this.isMarkedNegative = false;
                 if (!/-?[0-9]*\.?[0-9]*/.test(asString)) {
                     throw 'Invalid Float input: ' + asString;
@@ -16,7 +16,7 @@ var pir;
                 this.integerPart = this.stripLeadingZeros(split[0]);
                 this.fractionalPart = this.stripTailingZeros(split[1] || '');
             }
-            Float.prototype.stripLeadingZeros = function (src) {
+            BigNumber.prototype.stripLeadingZeros = function (src) {
                 for (var i = 0, n = src.length; i < n; i++) {
                     if (src.charAt(i) !== '0')
                         break;
@@ -24,7 +24,7 @@ var pir;
                 return src.substring(i);
             };
 
-            Float.prototype.stripTailingZeros = function (src) {
+            BigNumber.prototype.stripTailingZeros = function (src) {
                 for (var i = src.length - 1; i >= 0; i--) {
                     if (src.charAt(i) !== '0')
                         break;
@@ -32,55 +32,55 @@ var pir;
                 return src.substring(0, i + 1);
             };
 
-            Float.prototype.leftPadWithZeros = function (src, length) {
+            BigNumber.prototype.leftPadWithZeros = function (src, length) {
                 while (src.length < length)
                     src = '0' + src;
                 return src;
             };
 
-            Float.prototype.rightPadWithZeros = function (src, length) {
+            BigNumber.prototype.rightPadWithZeros = function (src, length) {
                 while (src.length < length)
                     src = src + '0';
                 return src;
             };
 
-            Float.prototype.getIntegerPart = function () {
+            BigNumber.prototype.getIntegerPart = function () {
                 return this.integerPart;
             };
 
-            Float.prototype.getFractionalPart = function () {
+            BigNumber.prototype.getFractionalPart = function () {
                 return this.fractionalPart;
             };
 
-            Float.prototype.getIntegerPartLength = function () {
+            BigNumber.prototype.getIntegerPartLength = function () {
                 if (this.integerPartLength == null) {
                     this.integerPartLength = this.getIntegerPart().length;
                 }
                 return this.integerPartLength;
             };
 
-            Float.prototype.getFractionalPartLength = function () {
+            BigNumber.prototype.getFractionalPartLength = function () {
                 if (this.fractionalPartLength == null) {
                     this.fractionalPartLength = this.getFractionalPart().length;
                 }
                 return this.fractionalPartLength;
             };
 
-            Float.prototype.isLessThan = function (other) {
+            BigNumber.prototype.isLessThan = function (other) {
                 return this.compareWith(other) < 0;
             };
 
-            Float.prototype.isMoreThan = function (other) {
+            BigNumber.prototype.isMoreThan = function (other) {
                 return this.compareWith(other) > 0;
             };
 
-            Float.prototype.equals = function (other) {
+            BigNumber.prototype.equals = function (other) {
                 return this.compareWith(other) == 0;
             };
 
-            Float.prototype.compareWith = function (other) {
+            BigNumber.prototype.compareWith = function (other) {
                 if (typeof other == 'string') {
-                    var otherFloat = new Float(other);
+                    var otherFloat = new BigNumber(other);
                 } else {
                     var otherFloat = other;
                 }
@@ -98,17 +98,17 @@ var pir;
                 return result;
             };
 
-            Float.prototype.getAbsolute = function () {
-                return new Float(this.toAbsoluteString());
+            BigNumber.prototype.getAbsolute = function () {
+                return new BigNumber(this.toAbsoluteString());
             };
 
-            Float.prototype.getInverted = function () {
-                return new Float(this.toInvertedString());
+            BigNumber.prototype.getInverted = function () {
+                return new BigNumber(this.toInvertedString());
             };
 
-            Float.prototype.add = function (other) {
+            BigNumber.prototype.add = function (other) {
                 if (typeof other === 'string') {
-                    var otherFloat = new Float(other);
+                    var otherFloat = new BigNumber(other);
                 } else {
                     var otherFloat = other;
                 }
@@ -126,10 +126,10 @@ var pir;
                 if (fractionalPartLength) {
                     result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
                 }
-                return new Float((this.getIsNegative() ? '-' : '') + result);
+                return new BigNumber((this.getIsNegative() ? '-' : '') + result);
             };
 
-            Float.prototype.addPart = function (a, b) {
+            BigNumber.prototype.addPart = function (a, b) {
                 var result = '';
                 var carryOver = '';
                 for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
@@ -143,7 +143,7 @@ var pir;
                 return result;
             };
 
-            Float.prototype.addDigits = function (a, b, carryOver) {
+            BigNumber.prototype.addDigits = function (a, b, carryOver) {
                 var result = parseInt(a) + parseInt(b) + parseInt(carryOver || '0');
                 var resultStr = result + '';
                 return {
@@ -152,57 +152,57 @@ var pir;
                 };
             };
 
-            Float.prototype.getIsPositive = function () {
+            BigNumber.prototype.getIsPositive = function () {
                 if (this.isPositive == null) {
                     this.isPositive = !this.getIsMarkedNegative() && !this.getIsZero();
                 }
                 return this.isPositive;
             };
 
-            Float.prototype.getIsNegative = function () {
+            BigNumber.prototype.getIsNegative = function () {
                 if (this.isNegative == null) {
                     this.isNegative = this.getIsMarkedNegative() && !this.getIsZero();
                 }
                 return this.isNegative;
             };
 
-            Float.prototype.getIsZero = function () {
+            BigNumber.prototype.getIsZero = function () {
                 return this.getFractionalPartLength() == 0 && this.getIntegerPartLength() == 0;
             };
 
-            Float.prototype.getIsMarkedNegative = function () {
+            BigNumber.prototype.getIsMarkedNegative = function () {
                 return this.isMarkedNegative;
             };
 
-            Float.prototype.toAbsoluteString = function () {
+            BigNumber.prototype.toAbsoluteString = function () {
                 var fractionalPart = this.getFractionalPart();
                 if (fractionalPart)
                     fractionalPart = '.' + fractionalPart;
                 return (this.getIntegerPart() || '0') + fractionalPart;
             };
 
-            Float.prototype.toInvertedString = function () {
+            BigNumber.prototype.toInvertedString = function () {
                 return (this.getIsNegative() || this.getIsZero() ? '' : '-') + this.toAbsoluteString();
             };
 
-            Float.prototype.toString = function () {
+            BigNumber.prototype.toString = function () {
                 return (this.getIsNegative() ? '-' : '') + this.toAbsoluteString();
             };
 
-            Float.prototype.toNumber = function () {
+            BigNumber.prototype.toNumber = function () {
                 return Number(this.toString());
             };
 
-            Float.prototype.valueOf = function () {
+            BigNumber.prototype.valueOf = function () {
                 return this.toString();
             };
-            return Float;
+            return BigNumber;
         })();
-        math.Float = Float;
+        math.BigNumber = BigNumber;
     })(pir.math || (pir.math = {}));
     var math = pir.math;
 })(pir || (pir = {}));
-/// <reference path='../Float.ts'/>
+/// <reference path='../BigNumber.ts'/>
 var pir;
 (function (pir) {
     (function (math) {
@@ -214,51 +214,51 @@ var pir;
                 Main.prototype.onDOMLoaded = function () {
                     console.log('pir.math test');
 
-                    var a = new pir.math.Float('-000111222333444555666777888');
+                    var a = new pir.math.BigNumber('-000111222333444555666777888');
                     console.log(a);
                     console.assert(a + 'px' === '-111222333444555666777888px');
 
-                    var b = new pir.math.Float('2.300');
+                    var b = new pir.math.BigNumber('2.300');
                     console.log(b);
                     console.assert(b + 'px' === '2.3px');
                     console.assert(b * 1 === 2.3);
                     console.log(b - 2);
 
-                    var c = new pir.math.Float('9999999999999999999999999999999999999.00000000000000000009');
-                    var d = new pir.math.Float('9999999999999999999999999999999999999.0000000000000000009');
+                    var c = new pir.math.BigNumber('9999999999999999999999999999999999999.00000000000000000009');
+                    var d = new pir.math.BigNumber('9999999999999999999999999999999999999.0000000000000000009');
                     console.assert(c.isMoreThan(d) === false);
                     console.assert(c.isLessThan(d) === true);
                     console.assert(c.equals(d) === false);
 
-                    console.assert(new pir.math.Float('0').isMoreThan('-.1') === true);
-                    console.assert(new pir.math.Float('0').equals('') === true);
-                    console.assert(new pir.math.Float('0').equals('-') === true);
-                    console.assert(new pir.math.Float('.1').isMoreThan('.01') === true);
-                    console.assert(new pir.math.Float('.1').isLessThan('') === false);
+                    console.assert(new pir.math.BigNumber('0').isMoreThan('-.1') === true);
+                    console.assert(new pir.math.BigNumber('0').equals('') === true);
+                    console.assert(new pir.math.BigNumber('0').equals('-') === true);
+                    console.assert(new pir.math.BigNumber('.1').isMoreThan('.01') === true);
+                    console.assert(new pir.math.BigNumber('.1').isLessThan('') === false);
 
-                    console.assert(new pir.math.Float('5.5').isLessThan('-3.4') === false);
-                    console.assert(new pir.math.Float('-5.5').isLessThan('-3.4') === true);
-                    console.assert(new pir.math.Float('5.5').isLessThan('3.4') === false);
+                    console.assert(new pir.math.BigNumber('5.5').isLessThan('-3.4') === false);
+                    console.assert(new pir.math.BigNumber('-5.5').isLessThan('-3.4') === true);
+                    console.assert(new pir.math.BigNumber('5.5').isLessThan('3.4') === false);
 
-                    console.assert(new pir.math.Float('-3.4').isMoreThan('-5.5') === true);
-                    console.assert(new pir.math.Float('3.4').isMoreThan('-5.5') === true);
-                    console.assert(new pir.math.Float('3.4').isMoreThan('5.5') === false);
+                    console.assert(new pir.math.BigNumber('-3.4').isMoreThan('-5.5') === true);
+                    console.assert(new pir.math.BigNumber('3.4').isMoreThan('-5.5') === true);
+                    console.assert(new pir.math.BigNumber('3.4').isMoreThan('5.5') === false);
 
-                    console.assert(new pir.math.Float('3.4').equals('5.5') === false);
-                    console.assert(new pir.math.Float('5.5').equals('-5.5') === false);
-                    console.assert(new pir.math.Float('5.5').equals('5.5') === true);
+                    console.assert(new pir.math.BigNumber('3.4').equals('5.5') === false);
+                    console.assert(new pir.math.BigNumber('5.5').equals('-5.5') === false);
+                    console.assert(new pir.math.BigNumber('5.5').equals('5.5') === true);
 
-                    console.assert(new pir.math.Float('55.55').add('16.5').toString() === '72.05');
-                    console.assert(new pir.math.Float('-99.98').add('-0.03').toString() === '-100.01');
-                    console.assert(new pir.math.Float('999999999999999999999999999999999999').add('999999999999999999999999999999999999').toString() === '1999999999999999999999999999999999998');
+                    console.assert(new pir.math.BigNumber('55.55').add('16.5').toString() === '72.05');
+                    console.assert(new pir.math.BigNumber('-99.98').add('-0.03').toString() === '-100.01');
+                    console.assert(new pir.math.BigNumber('999999999999999999999999999999999999').add('999999999999999999999999999999999999').toString() === '1999999999999999999999999999999999998');
 
-                    console.assert(new pir.math.Float('5.7').getAbsolute().toString() === '5.7');
-                    console.assert(new pir.math.Float('-5.7').getAbsolute().toString() === '5.7');
-                    console.assert(new pir.math.Float('-').getAbsolute().toString() === '0');
+                    console.assert(new pir.math.BigNumber('5.7').getAbsolute().toString() === '5.7');
+                    console.assert(new pir.math.BigNumber('-5.7').getAbsolute().toString() === '5.7');
+                    console.assert(new pir.math.BigNumber('-').getAbsolute().toString() === '0');
 
-                    console.assert(new pir.math.Float('5.7').getInverted().toString() === '-5.7');
-                    console.assert(new pir.math.Float('-5.7').getInverted().toString() === '5.7');
-                    console.assert(new pir.math.Float('0').getInverted().toString() === '0');
+                    console.assert(new pir.math.BigNumber('5.7').getInverted().toString() === '-5.7');
+                    console.assert(new pir.math.BigNumber('-5.7').getInverted().toString() === '5.7');
+                    console.assert(new pir.math.BigNumber('0').getInverted().toString() === '0');
                 };
                 return Main;
             })();
