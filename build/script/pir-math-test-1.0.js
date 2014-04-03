@@ -67,11 +67,11 @@ var pir;
             };
 
             Float.prototype.isLessThan = function (other) {
-                return this.compareWith(other) > 0;
+                return this.compareWith(other) < 0;
             };
 
             Float.prototype.isMoreThan = function (other) {
-                return this.compareWith(other) < 0;
+                return this.compareWith(other) > 0;
             };
 
             Float.prototype.equals = function (other) {
@@ -80,21 +80,17 @@ var pir;
 
             Float.prototype.compareWith = function (other) {
                 if (typeof other == 'string') {
-                    other = new Float(other);
+                    var otherFloat = new Float(other);
+                } else {
+                    var otherFloat = other;
                 }
 
-                var result = 0;
-
-                if (!this.getIsNegative() && other.getIsNegative()) {
-                    result = -1;
-                } else if (this.getIsNegative() && !other.getIsNegative()) {
-                    result = 1;
+                if (!this.getIsNegative() && otherFloat.getIsNegative()) {
+                    var result = 1;
+                } else if (this.getIsNegative() && !otherFloat.getIsNegative()) {
+                    var result = -1;
                 } else {
-                    result = this.compareParts(this.getIntegerPart(), other.getIntegerPart());
-                    if (!result) {
-                        var length = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
-                        result = this.compareParts(this.rightPadWithZeros(this.getFractionalPart(), length), this.rightPadWithZeros(other.getFractionalPart(), length));
-                    }
+                    var result = this.toAbsoluteString().localeCompare(otherFloat.toAbsoluteString());
                     if (this.getIsNegative())
                         result = -result;
                 }
@@ -102,48 +98,31 @@ var pir;
                 return result;
             };
 
-            Float.prototype.compareParts = function (a, b) {
-                var result = 0;
-
-                if (a.length > b.length) {
-                    result = -1;
-                } else if (a.length < b.length) {
-                    result = 1;
-                } else {
-                    for (var i = 0, n = a.length; i < n; i++) {
-                        result = this.compareDigits(a.charAt(i), b.charAt(i));
-                        if (result)
-                            break;
-                    }
-                }
-
-                return result;
-            };
-
-            Float.prototype.compareDigits = function (a, b) {
-                return parseInt(b) - parseInt(a);
+            Float.prototype.getAbsolute = function () {
+                return new Float(this.toAbsoluteString());
             };
 
             Float.prototype.add = function (other) {
                 if (typeof other === 'string') {
-                    other = new Float(other);
+                    var otherFloat = new Float(other);
+                } else {
+                    var otherFloat = other;
                 }
 
-                var fractionalPartLength = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
+                var fractionalPartLength = Math.max(this.getFractionalPartLength(), otherFloat.getFractionalPartLength());
+                var thisFractionalPart = this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength);
+                var otherFractionalPart = this.rightPadWithZeros(otherFloat.getFractionalPart(), fractionalPartLength);
 
-                var fractionalResult = this.addPart(this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength), this.rightPadWithZeros(other.getFractionalPart(), fractionalPartLength));
+                var integerPartLength = Math.max(this.getIntegerPartLength(), otherFloat.getIntegerPartLength());
+                var thisIntegerPart = this.leftPadWithZeros(this.getIntegerPart(), integerPartLength);
+                var otherIntegerPart = this.leftPadWithZeros(otherFloat.getIntegerPart(), integerPartLength);
 
-                var fractionalCarryOver = fractionalResult.substring(0, fractionalResult.length - fractionalPartLength);
-                fractionalResult = fractionalResult.substring(fractionalResult.length - fractionalPartLength);
+                var result = this.addPart(thisIntegerPart + thisFractionalPart, otherIntegerPart + otherFractionalPart);
 
-                var integerPartLength = Math.max(this.getIntegerPartLength(), other.getIntegerPartLength());
-                var integerResult = this.addPart(this.leftPadWithZeros(this.getIntegerPart(), integerPartLength), this.leftPadWithZeros(other.getIntegerPart(), integerPartLength));
-                if (fractionalCarryOver) {
-                    integerPartLength = Math.max(integerResult.length, fractionalCarryOver.length);
-                    integerResult = this.addPart(this.leftPadWithZeros(integerResult, integerPartLength), this.leftPadWithZeros(fractionalCarryOver, integerPartLength));
+                if (fractionalPartLength) {
+                    result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
                 }
-
-                return new Float((this.getIsNegative() ? '-' : '') + integerResult + '.' + fractionalResult);
+                return new Float((this.getIsNegative() ? '-' : '') + result);
             };
 
             Float.prototype.addPart = function (a, b) {
@@ -191,11 +170,15 @@ var pir;
                 return this.isMarkedNegative;
             };
 
-            Float.prototype.toString = function () {
+            Float.prototype.toAbsoluteString = function () {
                 var fractionalPart = this.getFractionalPart();
                 if (fractionalPart)
                     fractionalPart = '.' + fractionalPart;
-                return (this.getIsNegative() ? '-' : '') + (this.getIntegerPart() || '0') + fractionalPart;
+                return (this.getIntegerPart() || '0') + fractionalPart;
+            };
+
+            Float.prototype.toString = function () {
+                return (this.getIsNegative() ? '-' : '') + this.toAbsoluteString();
             };
 
             Float.prototype.toNumber = function () {
@@ -238,6 +221,12 @@ var pir;
                     console.assert(c.isMoreThan(d) === false);
                     console.assert(c.isLessThan(d) === true);
                     console.assert(c.equals(d) === false);
+
+                    console.assert(new pir.math.Float('0').isMoreThan('-.1') === true);
+                    console.assert(new pir.math.Float('0').equals('') === true);
+                    console.assert(new pir.math.Float('0').equals('-') === true);
+                    console.assert(new pir.math.Float('.1').isMoreThan('.01') === true);
+                    console.assert(new pir.math.Float('.1').isLessThan('') === false);
 
                     console.assert(new pir.math.Float('5.5').isLessThan('-3.4') === false);
                     console.assert(new pir.math.Float('-5.5').isLessThan('-3.4') === true);

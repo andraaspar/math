@@ -25,6 +25,12 @@ module pir.math.test {
 			console.assert(c.isLessThan(d) === true);
 			console.assert(c.equals(d) === false);
 			
+			console.assert(new Float('0').isMoreThan('-.1') === true);
+			console.assert(new Float('0').equals('') === true);
+			console.assert(new Float('0').equals('-') === true);
+			console.assert(new Float('.1').isMoreThan('.01') === true);
+			console.assert(new Float('.1').isLessThan('') === false);
+			
 			console.assert(new Float('5.5').isLessThan('-3.4') === false);
 			console.assert(new Float('-5.5').isLessThan('-3.4') === true);
 			console.assert(new Float('5.5').isLessThan('3.4') === false);
