@@ -46,6 +46,14 @@ module pir.math.test {
 			console.assert(new Float('55.55').add('16.5').toString() === '72.05');
 			console.assert(new Float('-99.98').add('-0.03').toString() === '-100.01');
 			console.assert(new Float('999999999999999999999999999999999999').add('999999999999999999999999999999999999').toString() === '1999999999999999999999999999999999998');
+			
+			console.assert(new Float('5.7').getAbsolute().toString() === '5.7');
+			console.assert(new Float('-5.7').getAbsolute().toString() === '5.7');
+			console.assert(new Float('-').getAbsolute().toString() === '0');
+			
+			console.assert(new Float('5.7').getInverted().toString() === '-5.7');
+			console.assert(new Float('-5.7').getInverted().toString() === '5.7');
+			console.assert(new Float('0').getInverted().toString() === '0');
 		}
 	}
 }

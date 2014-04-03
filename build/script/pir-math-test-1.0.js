@@ -102,6 +102,10 @@ var pir;
                 return new Float(this.toAbsoluteString());
             };
 
+            Float.prototype.getInverted = function () {
+                return new Float(this.toInvertedString());
+            };
+
             Float.prototype.add = function (other) {
                 if (typeof other === 'string') {
                     var otherFloat = new Float(other);
@@ -177,6 +181,10 @@ var pir;
                 return (this.getIntegerPart() || '0') + fractionalPart;
             };
 
+            Float.prototype.toInvertedString = function () {
+                return (this.getIsNegative() || this.getIsZero() ? '' : '-') + this.toAbsoluteString();
+            };
+
             Float.prototype.toString = function () {
                 return (this.getIsNegative() ? '-' : '') + this.toAbsoluteString();
             };
@@ -243,6 +251,14 @@ var pir;
                     console.assert(new pir.math.Float('55.55').add('16.5').toString() === '72.05');
                     console.assert(new pir.math.Float('-99.98').add('-0.03').toString() === '-100.01');
                     console.assert(new pir.math.Float('999999999999999999999999999999999999').add('999999999999999999999999999999999999').toString() === '1999999999999999999999999999999999998');
+
+                    console.assert(new pir.math.Float('5.7').getAbsolute().toString() === '5.7');
+                    console.assert(new pir.math.Float('-5.7').getAbsolute().toString() === '5.7');
+                    console.assert(new pir.math.Float('-').getAbsolute().toString() === '0');
+
+                    console.assert(new pir.math.Float('5.7').getInverted().toString() === '-5.7');
+                    console.assert(new pir.math.Float('-5.7').getInverted().toString() === '5.7');
+                    console.assert(new pir.math.Float('0').getInverted().toString() === '0');
                 };
                 return Main;
             })();

@@ -3,7 +3,7 @@ module pir.math {
 		result: string;
 		carryOver: string;
 	}
-	
+
 	export class Float {
 
 		private isNegative: boolean;
@@ -113,9 +113,13 @@ module pir.math {
 
 			return result;
 		}
-		
+
 		getAbsolute(): Float {
 			return new Float(this.toAbsoluteString());
+		}
+
+		getInverted(): Float {
+			return new Float(this.toInvertedString());
 		}
 
 		add(other: Float): Float;
@@ -126,20 +130,20 @@ module pir.math {
 			} else {
 				var otherFloat = <Float>other;
 			}
-			
+
 			var fractionalPartLength = Math.max(this.getFractionalPartLength(), otherFloat.getFractionalPartLength());
 			var thisFractionalPart = this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength);
 			var otherFractionalPart = this.rightPadWithZeros(otherFloat.getFractionalPart(), fractionalPartLength);
-			
+
 			var integerPartLength = Math.max(this.getIntegerPartLength(), otherFloat.getIntegerPartLength());
 			var thisIntegerPart = this.leftPadWithZeros(this.getIntegerPart(), integerPartLength);
 			var otherIntegerPart = this.leftPadWithZeros(otherFloat.getIntegerPart(), integerPartLength);
-			
+
 			var result = this.addPart(
 				thisIntegerPart + thisFractionalPart,
 				otherIntegerPart + otherFractionalPart
-			);
-			
+				);
+
 			if (fractionalPartLength) {
 				result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
 			}
@@ -159,7 +163,7 @@ module pir.math {
 			}
 			return result;
 		}
-		
+
 		addDigits(a: string, b: string, carryOver: string): IAddResult {
 			var result = parseInt(a) + parseInt(b) + parseInt(carryOver || '0');
 			var resultStr = result + '';
@@ -190,11 +194,15 @@ module pir.math {
 		getIsMarkedNegative() {
 			return this.isMarkedNegative;
 		}
-		
+
 		toAbsoluteString() {
 			var fractionalPart = this.getFractionalPart();
 			if (fractionalPart) fractionalPart = '.' + fractionalPart;
 			return (this.getIntegerPart() || '0') + fractionalPart;
+		}
+
+		toInvertedString() {
+			return (this.getIsNegative() || this.getIsZero() ? '' : '-') + this.toAbsoluteString();
 		}
 
 		toString() {
