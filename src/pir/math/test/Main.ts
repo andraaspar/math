@@ -17,7 +17,6 @@ module pir.math.test {
 			console.log(b);
 			console.assert(b + 'px' === '2.3px');
 			console.assert(<any>b * 1 === 2.3);
-			console.log(<any>b - 2);
 			
 			var c = new BigNumber('9999999999999999999999999999999999999.00000000000000000009');
 			var d = new BigNumber('9999999999999999999999999999999999999.0000000000000000009');
@@ -30,6 +29,7 @@ module pir.math.test {
 			console.assert(new BigNumber('0').equals('-') === true);
 			console.assert(new BigNumber('.1').isMoreThan('.01') === true);
 			console.assert(new BigNumber('.1').isLessThan('') === false);
+			console.assert(new BigNumber('10').isMoreThan('7') === true);
 			
 			console.assert(new BigNumber('5.5').isLessThan('-3.4') === false);
 			console.assert(new BigNumber('-5.5').isLessThan('-3.4') === true);
@@ -54,6 +54,15 @@ module pir.math.test {
 			console.assert(new BigNumber('5.7').getInverted().toString() === '-5.7');
 			console.assert(new BigNumber('-5.7').getInverted().toString() === '5.7');
 			console.assert(new BigNumber('0').getInverted().toString() === '0');
+			
+			console.assert(new BigNumber('10').subtract(7).toString() === '3');
+			console.assert(new BigNumber('111').subtract('97').toString() === '14');
+			console.assert(new BigNumber('15.65').add('-15.65').toString() === '0');
+			console.assert(new BigNumber('2.3').subtract(2).toString() === '0.3');
+			console.assert(new BigNumber(-5.2).subtract(2.4).toString() === '-7.6');
+			console.assert(new BigNumber(-5.2).subtract(-2.4).toString() === '-2.8');
+			console.assert(new BigNumber(10).add(-11).toString() === '-1');
+			console.assert(new BigNumber(-1).add(77).toString() === '76');
 		}
 	}
 }

@@ -3,6 +3,12 @@ module pir.math {
 		result: string;
 		carryOver: string;
 	}
+	export interface IComparableStrings {
+		thisCombined: string;
+		otherCombined: string;
+		integerPartLength: number;
+		fractionalPartLength: number;
+	}
 
 	export class BigNumber {
 
@@ -14,16 +20,19 @@ module pir.math {
 		private integerPartLength: number;
 		private fractionalPartLength: number;
 
-		constructor(asString: string) {
-			if (!/-?[0-9]*\.?[0-9]*/.test(asString)) {
-				throw 'Invalid Float input: ' + asString;
+		constructor(value: string);
+		constructor(value: number);
+		constructor(value) {
+			var valueStr = value + '';
+			if (!/-?[0-9]*\.?[0-9]*/.test(valueStr)) {
+				throw 'Invalid value: ' + valueStr;
 			}
-			if (asString.charAt(0) === '-') {
+			if (valueStr.charAt(0) === '-') {
 				this.isMarkedNegative = true;
-				asString = asString.substring(1);
+				valueStr = valueStr.substring(1);
 			}
 
-			var split = asString.split('.');
+			var split = valueStr.split('.');
 			this.integerPart = this.stripLeadingZeros(split[0]);
 			this.fractionalPart = this.stripTailingZeros(split[1] || '');
 		}
@@ -76,12 +85,14 @@ module pir.math {
 
 		isLessThan(other: BigNumber): boolean;
 		isLessThan(other: string): boolean;
+		isLessThan(other: number): boolean;
 		isLessThan(other) {
 			return this.compareWith(other) < 0;
 		}
 
 		isMoreThan(other: BigNumber): boolean;
 		isMoreThan(other: string): boolean;
+		isMoreThan(other: number): boolean;
 		isMoreThan(other) {
 			return this.compareWith(other) > 0;
 		}
@@ -89,25 +100,24 @@ module pir.math {
 
 		equals(other: BigNumber): boolean;
 		equals(other: string): boolean;
+		equals(other: number): boolean;
 		equals(other) {
 			return this.compareWith(other) == 0;
 		}
 
 		compareWith(other: BigNumber): number;
 		compareWith(other: string): number;
+		compareWith(other: number): number;
 		compareWith(other) {
-			if (typeof other == 'string') {
-				var otherFloat = new BigNumber(other);
-			} else {
-				var otherFloat = <BigNumber>other;
-			}
+			var otherBN = this.castValue(other);
 
-			if (!this.getIsNegative() && otherFloat.getIsNegative()) {
+			if (!this.getIsNegative() && otherBN.getIsNegative()) {
 				var result = 1;
-			} else if (this.getIsNegative() && !otherFloat.getIsNegative()) {
+			} else if (this.getIsNegative() && !otherBN.getIsNegative()) {
 				var result = -1;
 			} else {
-				var result = this.toAbsoluteString().localeCompare(otherFloat.toAbsoluteString());
+				var cs = this.getComparableStrings(otherBN);
+				var result = cs.thisCombined.localeCompare(cs.otherCombined);
 				if (this.getIsNegative()) result = -result;
 			}
 
@@ -122,32 +132,64 @@ module pir.math {
 			return new BigNumber(this.toInvertedString());
 		}
 
+		castValue(value: BigNumber): BigNumber;
+		castValue(value: string): BigNumber;
+		castValue(value: number): BigNumber;
+		castValue(value) {
+			if (typeof value === 'number') {
+				return new BigNumber(<number>value);
+			} else if (typeof value === 'string') {
+				return new BigNumber(<string>value);
+			} else {
+				return <BigNumber>value;
+			}
+		}
+
+		getComparableStrings(other: BigNumber): IComparableStrings {
+			var fractionalPartLength = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
+			var thisFractionalPart = this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength);
+			var otherFractionalPart = this.rightPadWithZeros(other.getFractionalPart(), fractionalPartLength);
+
+			var integerPartLength = Math.max(this.getIntegerPartLength(), other.getIntegerPartLength());
+			var thisIntegerPart = this.leftPadWithZeros(this.getIntegerPart(), integerPartLength);
+			var otherIntegerPart = this.leftPadWithZeros(other.getIntegerPart(), integerPartLength);
+
+			return {
+				thisCombined: thisIntegerPart + thisFractionalPart,
+				otherCombined: otherIntegerPart + otherFractionalPart,
+				fractionalPartLength: fractionalPartLength,
+				integerPartLength: integerPartLength
+			};
+		}
+
 		add(other: BigNumber): BigNumber;
 		add(other: string): BigNumber;
+		add(other: number): BigNumber;
 		add(other) {
-			if (typeof other === 'string') {
-				var otherFloat = new BigNumber(other);
+			var otherBN = this.castValue(other);
+			var cs = this.getComparableStrings(otherBN);
+			var isNegative = false;
+
+			if (this.getIsNegative() == otherBN.getIsNegative()) {
+				var result = this.addPart(cs.thisCombined, cs.otherCombined);
+				isNegative = this.getIsNegative();
 			} else {
-				var otherFloat = <BigNumber>other;
+				if (this.getAbsolute().isMoreThan(otherBN.getAbsolute())) {
+					var result = this.subtractPart(cs.thisCombined, cs.otherCombined);
+					isNegative = this.getIsNegative();
+				} else {
+					var result = this.subtractPart(cs.otherCombined, cs.thisCombined);
+					isNegative = otherBN.getIsNegative();
+				}
 			}
 
-			var fractionalPartLength = Math.max(this.getFractionalPartLength(), otherFloat.getFractionalPartLength());
-			var thisFractionalPart = this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength);
-			var otherFractionalPart = this.rightPadWithZeros(otherFloat.getFractionalPart(), fractionalPartLength);
-
-			var integerPartLength = Math.max(this.getIntegerPartLength(), otherFloat.getIntegerPartLength());
-			var thisIntegerPart = this.leftPadWithZeros(this.getIntegerPart(), integerPartLength);
-			var otherIntegerPart = this.leftPadWithZeros(otherFloat.getIntegerPart(), integerPartLength);
-
-			var result = this.addPart(
-				thisIntegerPart + thisFractionalPart,
-				otherIntegerPart + otherFractionalPart
-				);
-
-			if (fractionalPartLength) {
-				result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
+			if (cs.fractionalPartLength) {
+				result = result.slice(0, -cs.fractionalPartLength) + '.' + result.slice(-cs.fractionalPartLength);
 			}
-			return new BigNumber((this.getIsNegative() ? '-' : '') + result);
+			if (isNegative) {
+				result = '-' + result;
+			}
+			return new BigNumber(result);
 		}
 
 		addPart(a: string, b: string): string {
@@ -170,6 +212,58 @@ module pir.math {
 			return {
 				result: resultStr.charAt(resultStr.length - 1),
 				carryOver: resultStr.slice(0, -1)
+			};
+		}
+
+		subtract(other: BigNumber): BigNumber;
+		subtract(other: string): BigNumber;
+		subtract(other: number): BigNumber;
+		subtract(other) {
+			return this.add(this.castValue(other).getInverted());
+		}
+
+		subtractPart(a: string, b: string): string {
+			var result = '';
+			var carryOver = '';
+			for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
+				var subtractResult = this.subtractDigits(a.charAt(i), b.charAt(i), carryOver);
+				result = subtractResult.result + result;
+				carryOver = subtractResult.carryOver;
+			}
+			return result;
+		}
+
+		subtractDigits(a: string, b: string, carryOver: string): IAddResult {
+			var aNum = parseInt(a);
+			var bNum = parseInt(b);
+			var carryOverNum = parseInt(carryOver || '0');
+
+			bNum += carryOverNum;
+
+			b = bNum + '';
+			carryOver = b.slice(0, -1);
+			b = b.slice(-1);
+
+			carryOverNum = parseInt(carryOver || '0');
+			bNum = parseInt(b);
+
+			var result = aNum - bNum;
+			while (result < 0) {
+				result += 10;
+				carryOverNum += 1;
+			}
+
+			var resultStr = result + '';
+			if (resultStr.length > 1) {
+				carryOver = resultStr.slice(0, -1);
+				resultStr = resultStr.slice(-1);
+			} else {
+				carryOver = carryOverNum + '';
+			}
+
+			return {
+				result: resultStr,
+				carryOver: carryOver
 			};
 		}
 

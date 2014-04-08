@@ -2,17 +2,18 @@ var pir;
 (function (pir) {
     (function (math) {
         var BigNumber = (function () {
-            function BigNumber(asString) {
+            function BigNumber(value) {
                 this.isMarkedNegative = false;
-                if (!/-?[0-9]*\.?[0-9]*/.test(asString)) {
-                    throw 'Invalid Float input: ' + asString;
+                var valueStr = value + '';
+                if (!/-?[0-9]*\.?[0-9]*/.test(valueStr)) {
+                    throw 'Invalid value: ' + valueStr;
                 }
-                if (asString.charAt(0) === '-') {
+                if (valueStr.charAt(0) === '-') {
                     this.isMarkedNegative = true;
-                    asString = asString.substring(1);
+                    valueStr = valueStr.substring(1);
                 }
 
-                var split = asString.split('.');
+                var split = valueStr.split('.');
                 this.integerPart = this.stripLeadingZeros(split[0]);
                 this.fractionalPart = this.stripTailingZeros(split[1] || '');
             }
@@ -79,18 +80,15 @@ var pir;
             };
 
             BigNumber.prototype.compareWith = function (other) {
-                if (typeof other == 'string') {
-                    var otherFloat = new BigNumber(other);
-                } else {
-                    var otherFloat = other;
-                }
+                var otherBN = this.castValue(other);
 
-                if (!this.getIsNegative() && otherFloat.getIsNegative()) {
+                if (!this.getIsNegative() && otherBN.getIsNegative()) {
                     var result = 1;
-                } else if (this.getIsNegative() && !otherFloat.getIsNegative()) {
+                } else if (this.getIsNegative() && !otherBN.getIsNegative()) {
                     var result = -1;
                 } else {
-                    var result = this.toAbsoluteString().localeCompare(otherFloat.toAbsoluteString());
+                    var cs = this.getCombinedStrings(otherBN);
+                    var result = cs.thisCombined.localeCompare(cs.otherCombined);
                     if (this.getIsNegative())
                         result = -result;
                 }
@@ -106,27 +104,58 @@ var pir;
                 return new BigNumber(this.toInvertedString());
             };
 
-            BigNumber.prototype.add = function (other) {
-                if (typeof other === 'string') {
-                    var otherFloat = new BigNumber(other);
+            BigNumber.prototype.castValue = function (value) {
+                if (typeof value === 'number') {
+                    return new BigNumber(value);
+                } else if (typeof value === 'string') {
+                    return new BigNumber(value);
                 } else {
-                    var otherFloat = other;
+                    return value;
                 }
+            };
 
-                var fractionalPartLength = Math.max(this.getFractionalPartLength(), otherFloat.getFractionalPartLength());
+            BigNumber.prototype.getCombinedStrings = function (other) {
+                var fractionalPartLength = Math.max(this.getFractionalPartLength(), other.getFractionalPartLength());
                 var thisFractionalPart = this.rightPadWithZeros(this.getFractionalPart(), fractionalPartLength);
-                var otherFractionalPart = this.rightPadWithZeros(otherFloat.getFractionalPart(), fractionalPartLength);
+                var otherFractionalPart = this.rightPadWithZeros(other.getFractionalPart(), fractionalPartLength);
 
-                var integerPartLength = Math.max(this.getIntegerPartLength(), otherFloat.getIntegerPartLength());
+                var integerPartLength = Math.max(this.getIntegerPartLength(), other.getIntegerPartLength());
                 var thisIntegerPart = this.leftPadWithZeros(this.getIntegerPart(), integerPartLength);
-                var otherIntegerPart = this.leftPadWithZeros(otherFloat.getIntegerPart(), integerPartLength);
+                var otherIntegerPart = this.leftPadWithZeros(other.getIntegerPart(), integerPartLength);
 
-                var result = this.addPart(thisIntegerPart + thisFractionalPart, otherIntegerPart + otherFractionalPart);
+                return {
+                    thisCombined: thisIntegerPart + thisFractionalPart,
+                    otherCombined: otherIntegerPart + otherFractionalPart,
+                    fractionalPartLength: fractionalPartLength,
+                    integerPartLength: integerPartLength
+                };
+            };
 
-                if (fractionalPartLength) {
-                    result = result.slice(0, -fractionalPartLength) + '.' + result.slice(-fractionalPartLength);
+            BigNumber.prototype.add = function (other) {
+                var otherBN = this.castValue(other);
+                var cs = this.getCombinedStrings(otherBN);
+                var isNegative = false;
+
+                if (this.getIsNegative() == otherBN.getIsNegative()) {
+                    var result = this.addPart(cs.thisCombined, cs.otherCombined);
+                    isNegative = this.getIsNegative();
+                } else {
+                    if (this.getAbsolute().isMoreThan(otherBN.getAbsolute())) {
+                        var result = this.subtractPart(cs.thisCombined, cs.otherCombined);
+                        isNegative = this.getIsNegative();
+                    } else {
+                        var result = this.subtractPart(cs.otherCombined, cs.thisCombined);
+                        isNegative = otherBN.getIsNegative();
+                    }
                 }
-                return new BigNumber((this.getIsNegative() ? '-' : '') + result);
+
+                if (cs.fractionalPartLength) {
+                    result = result.slice(0, -cs.fractionalPartLength) + '.' + result.slice(-cs.fractionalPartLength);
+                }
+                if (isNegative) {
+                    result = '-' + result;
+                }
+                return new BigNumber(result);
             };
 
             BigNumber.prototype.addPart = function (a, b) {
@@ -149,6 +178,55 @@ var pir;
                 return {
                     result: resultStr.charAt(resultStr.length - 1),
                     carryOver: resultStr.slice(0, -1)
+                };
+            };
+
+            BigNumber.prototype.subtract = function (other) {
+                return this.add(this.castValue(other).getInverted());
+            };
+
+            BigNumber.prototype.subtractPart = function (a, b) {
+                var result = '';
+                var carryOver = '';
+                for (var i = Math.max(a.length, b.length) - 1; i >= 0; i--) {
+                    var subtractResult = this.subtractDigits(a.charAt(i), b.charAt(i), carryOver);
+                    result = subtractResult.result + result;
+                    carryOver = subtractResult.carryOver;
+                }
+                return result;
+            };
+
+            BigNumber.prototype.subtractDigits = function (a, b, carryOver) {
+                var aNum = parseInt(a);
+                var bNum = parseInt(b);
+                var carryOverNum = parseInt(carryOver || '0');
+
+                bNum += carryOverNum;
+
+                b = bNum + '';
+                carryOver = b.slice(0, -1);
+                b = b.slice(-1);
+
+                carryOverNum = parseInt(carryOver || '0');
+                bNum = parseInt(b);
+
+                var result = aNum - bNum;
+                while (result < 0) {
+                    result += 10;
+                    carryOverNum += 1;
+                }
+
+                var resultStr = result + '';
+                if (resultStr.length > 1) {
+                    carryOver = resultStr.slice(0, -1);
+                    resultStr = resultStr.slice(-1);
+                } else {
+                    carryOver = carryOverNum + '';
+                }
+
+                return {
+                    result: resultStr,
+                    carryOver: carryOver
                 };
             };
 
@@ -222,7 +300,6 @@ var pir;
                     console.log(b);
                     console.assert(b + 'px' === '2.3px');
                     console.assert(b * 1 === 2.3);
-                    console.log(b - 2);
 
                     var c = new pir.math.BigNumber('9999999999999999999999999999999999999.00000000000000000009');
                     var d = new pir.math.BigNumber('9999999999999999999999999999999999999.0000000000000000009');
@@ -235,6 +312,7 @@ var pir;
                     console.assert(new pir.math.BigNumber('0').equals('-') === true);
                     console.assert(new pir.math.BigNumber('.1').isMoreThan('.01') === true);
                     console.assert(new pir.math.BigNumber('.1').isLessThan('') === false);
+                    console.assert(new pir.math.BigNumber('10').isMoreThan('7') === true);
 
                     console.assert(new pir.math.BigNumber('5.5').isLessThan('-3.4') === false);
                     console.assert(new pir.math.BigNumber('-5.5').isLessThan('-3.4') === true);
@@ -259,6 +337,15 @@ var pir;
                     console.assert(new pir.math.BigNumber('5.7').getInverted().toString() === '-5.7');
                     console.assert(new pir.math.BigNumber('-5.7').getInverted().toString() === '5.7');
                     console.assert(new pir.math.BigNumber('0').getInverted().toString() === '0');
+
+                    console.assert(new pir.math.BigNumber('10').subtract(7).toString() === '3');
+                    console.assert(new pir.math.BigNumber('111').subtract('97').toString() === '14');
+                    console.assert(new pir.math.BigNumber('15.65').add('-15.65').toString() === '0');
+                    console.assert(new pir.math.BigNumber('2.3').subtract(2).toString() === '0.3');
+                    console.assert(new pir.math.BigNumber(-5.2).subtract(2.4).toString() === '-7.6');
+                    console.assert(new pir.math.BigNumber(-5.2).subtract(-2.4).toString() === '-2.8');
+                    console.assert(new pir.math.BigNumber(10).add(-11).toString() === '-1');
+                    console.assert(new pir.math.BigNumber(-1).add(77).toString() === '76');
                 };
                 return Main;
             })();
